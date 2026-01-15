@@ -35,6 +35,9 @@ import * as datacache from './datacache'
 import * as security from '../lib/insecurity'
 // @ts-expect-error FIXME due to non-existing type definitions for replace
 import replace from 'replace'
+import * as fs from 'fs'
+import * as path from 'path'
+import * as crypto from 'crypto'
 
 const entities = new Entities()
 
@@ -132,10 +135,54 @@ async function createUsers () {
     users.map(async ({ username, email, password, customDomain, key, role, deletedFlag, profileImage, securityQuestion, feedback, address, card, totpSecret, lastLoginIp = '' }) => {
       try {
         const completeEmail = customDomain ? email : `${email}@${config.get<string>('application.domain')}`
+        
+        // Security fix: Override jim user password from environment variables
+        // This prevents hardcoded credentials from being used in production
+        let userPassword = password
+        if (key === 'jim') {
+          // Load .env file if it exists (same logic as testConfig.ts)
+          const envPath = path.resolve(process.cwd(), '.env')
+          if (fs.existsSync(envPath)) {
+            const envFile = fs.readFileSync(envPath, 'utf8')
+            const envLines = envFile.split('\n')
+            for (const line of envLines) {
+              const trimmedLine = line.trim()
+              if (!trimmedLine || trimmedLine.startsWith('#')) continue
+              const equalIndex = trimmedLine.indexOf('=')
+              if (equalIndex > 0) {
+                const envKey = trimmedLine.substring(0, equalIndex).trim()
+                let envValue = trimmedLine.substring(equalIndex + 1).trim()
+                if ((envValue.startsWith('"') && envValue.endsWith('"')) || 
+                    (envValue.startsWith("'") && envValue.endsWith("'"))) {
+                  envValue = envValue.slice(1, -1)
+                }
+                if (!process.env[envKey]) {
+                  process.env[envKey] = envValue
+                }
+              }
+            }
+          }
+          
+          // Use environment variable for jim's password, or generate random if not set
+          const jimPassword = process.env.TEST_USER_PASSWORD || process.env.JIM_PASSWORD
+          if (jimPassword) {
+            userPassword = jimPassword
+            logger.info('Using secure password from environment variable for jim user')
+          } else {
+            // Generate a random secure password if not provided
+            userPassword = crypto.randomBytes(32).toString('hex')
+            logger.warn(
+              'WARNING: jim user password not set in environment variables. ' +
+              'Generated random password. Set TEST_USER_PASSWORD or JIM_PASSWORD in .env file. ' +
+              'This random password will be different on each server restart!'
+            )
+          }
+        }
+        
         const user = await UserModel.create({
           username,
           email: completeEmail,
-          password,
+          password: userPassword,
           role,
           deluxeToken: role === security.roles.deluxe ? security.deluxeToken(completeEmail) : '',
           profileImage: `assets/public/images/uploads/${profileImage ?? (role === security.roles.admin ? 'defaultAdmin.png' : 'default.svg')}`,

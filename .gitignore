@@ -65,3 +65,7 @@ config/*.yml
 
 # System Files
 .DS_Store
+
+# Environment files
+.env.example
+.env

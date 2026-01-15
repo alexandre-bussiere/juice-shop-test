@@ -6,6 +6,7 @@
 import * as frisby from 'frisby'
 import { expect } from '@jest/globals'
 import * as security from '../../lib/insecurity'
+import { getTestUserEmail, getTestUserPassword } from '../testConfig'
 
 const API_URL = 'http://localhost:3000/api'
 const REST_URL = 'http://localhost:3000/rest'
@@ -21,8 +22,8 @@ beforeAll(() => {
   return frisby.post(REST_URL + '/user/login', {
     headers: jsonHeader,
     body: {
-      email: 'jim@juice-sh.op',
-      password: 'ncc-1701'
+      email: getTestUserEmail(),
+      password: getTestUserPassword()
     }
   })
     .expect('status', 200)

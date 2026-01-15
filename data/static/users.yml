@@ -28,7 +28,7 @@
       expYear: 2086
 -
   email: jim
-  password: 'ncc-1701'
+  password: '' # SECURITY: Password is set from environment variables (TEST_USER_PASSWORD or JIM_PASSWORD) or generated randomly
   key: jim
   role: 'customer'
   walletBalance: 100

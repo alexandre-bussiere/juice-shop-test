@@ -5,6 +5,7 @@
 
 import * as frisby from 'frisby'
 import config from 'config'
+import { getTestUserEmail, getTestUserPassword } from '../testConfig'
 
 const URL = 'http://localhost:3000'
 
@@ -15,8 +16,8 @@ beforeAll(() => {
   return frisby.post(`${URL}/rest/user/login`, {
     headers: jsonHeader,
     body: {
-      email: 'jim@juice-sh.op',
-      password: 'ncc-1701'
+      email: getTestUserEmail(),
+      password: getTestUserPassword()
     }
   })
     .expect('status', 200)
@@ -40,7 +41,7 @@ describe('/profile', () => {
     })
       .expect('status', 200)
       .expect('header', 'content-type', /text\/html/)
-      .expect('bodyContains', 'id="email" type="email" name="email" value="jim@juice-sh.op"')
+      .expect('bodyContains', `id="email" type="email" name="email" value="${getTestUserEmail()}"`)
   })
 
   it('POST update username of authenticated user', () => {
